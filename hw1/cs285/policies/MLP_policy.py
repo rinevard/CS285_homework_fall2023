@@ -116,7 +116,8 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         """
         torch.save(self.state_dict(), filepath)
 
-    def forward(self, observation: torch.FloatTensor) -> Any:
+    def forward(self, observation: torch.FloatTensor) -> torch.distributions.Distribution: 
+        # I change the return type from 'any' to 'torch.distributions.Distribution' -- rinev
         """
         Defines the forward pass of the network
 
@@ -129,6 +130,22 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # through it. For example, you can return a torch.FloatTensor. You can also
         # return more flexible objects, such as a
         # `torch.distributions.Distribution` object. It's up to you!
+
+        # let's start from a multi-gaussian -- rinev
+        assert isinstance(observation, torch.FloatTensor), f"{observation} is not a FloatTensor!"
+        observation.to(ptu.device)
+        # (batch, ac_dim)
+        mean = self.mean_net(observation)
+        # (ac_dim)
+        std = torch.exp(self.logstd)
+        # Using Normal instead of MultivariateNormal for simplicity.
+        # Assumes independence between action dimensions.
+        # PyTorch broadcasting allows different shapes for mean and std:
+        # mean: (batch, ac_dim), std: (ac_dim)
+        # std will be broadcast to match mean's batch dimension
+        dist = torch.distributions.Normal(mean, std)
+        return dist
+    
         raise NotImplementedError
 
     def update(self, observations, actions):
@@ -141,7 +158,20 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             dict: 'Training Loss': supervised learning loss
         """
         # TODO: update the policy and return the loss
-        loss = TODO
+
+        # let's use MLE -- rinev
+        assert isinstance(observations, np.array), f"{observations} is not an np.array!"
+        assert isinstance(actions, np.array), f"{actions} is not an np.array!"
+        # observations: (batch, ob_dim); actions: (batch, ac_dim)
+        observations, actions = ptu.from_numpy(observations), ptu.from_numpy(actions)
+
+        dist = self(observations)
+        loss = -torch.mean(dist.log_prob(actions))
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),

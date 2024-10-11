@@ -9,9 +9,9 @@ from collections import OrderedDict
 import cv2
 import numpy as np
 import time
+from torch import distributions # import by rinev to help debug
 
 from cs285.infrastructure import pytorch_util as ptu
-
 
 def sample_trajectory(env, policy, max_path_length, render=False):
     """Sample a rollout in the environment from a policy."""
@@ -33,15 +33,21 @@ def sample_trajectory(env, policy, max_path_length, render=False):
             image_obs.append(cv2.resize(img, dsize=(250, 250), interpolation=cv2.INTER_CUBIC))
     
         # TODO use the most recent ob to decide what to do
-        ac = TODO # HINT: this is a numpy array
+
+        ac_dist = policy(ptu.from_numpy(ob))
+        # assert to make code defensive -- rinevard
+        assert isinstance(ac_dist, distributions.Distribution), f"{ac_dist} is not a distribution!"
+        ac = ptu.to_numpy(ac_dist.sample()) # HINT: this is a numpy array
         ac = ac[0]
 
         # TODO: take that action and get reward and next ob
-        next_ob, rew, done, _ = TODO
+        next_ob, rew, done, _ = env.step(ac)
         
         # TODO rollout can end due to done, or due to max_path_length
+        # here is something interesting to read -- rinev
+        # https://ai.stackexchange.com/questions/10586/what-is-the-difference-between-an-episode-a-trajectory-and-a-rollout
         steps += 1
-        rollout_done = TODO # HINT: this is either 0 or 1
+        rollout_done = done or (steps >= max_path_length) # HINT: this is either 0 or 1
         
         # record result of taking that action
         obs.append(ob)
