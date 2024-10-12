@@ -160,8 +160,8 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # TODO: update the policy and return the loss
 
         # let's use MLE -- rinev
-        assert isinstance(observations, np.array), f"{observations} is not an np.array!"
-        assert isinstance(actions, np.array), f"{actions} is not an np.array!"
+        assert isinstance(observations, np.ndarray), f"{observations} is not an np.array!"
+        assert isinstance(actions, np.ndarray), f"{actions} is not an np.array!"
         # observations: (batch, ob_dim); actions: (batch, ac_dim)
         observations, actions = ptu.from_numpy(observations), ptu.from_numpy(actions)
 

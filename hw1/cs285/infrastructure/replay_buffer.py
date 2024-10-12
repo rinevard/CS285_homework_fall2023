@@ -18,7 +18,10 @@ class ReplayBuffer(object):
         self.terminals = None
 
     def __len__(self):
-        if self.obs:
+        # change 'if self.obs' to 'if self.obs is note None' to sole the error below:
+        # 'ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()' 
+        # -- rinev
+        if self.obs is not None:
             return self.obs.shape[0]
         else:
             return 0

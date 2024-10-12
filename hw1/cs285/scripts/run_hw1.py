@@ -133,7 +133,7 @@ def run_training_loop(params):
             # TODO: collect `params['batch_size']` transitions
             # HINT: use utils.sample_trajectories
             # TODO: implement missing parts of utils.sample_trajectory
-            paths, envsteps_this_batch = utils.sample_trajectories(env, actor, params['batch_size'], MAX_VIDEO_LEN)
+            paths, envsteps_this_batch = utils.sample_trajectories(env, actor, params['batch_size'], MAX_VIDEO_LEN, log_video)
 
             # relabel the collected obs with actions from a provided expert policy
             if params['do_dagger']:
@@ -143,8 +143,10 @@ def run_training_loop(params):
                 # HINT: query the policy (using the get_action function) with paths[i]["observation"]
                 # and replace paths[i]["action"] with these expert labels
                 for path in paths:
-                    export_ac = expert_policy(path['observations'])
-                    path['action'] = export_ac
+                    assert isinstance(path['observation'], np.ndarray), f"{path['observation']} is not an ndarray!"
+                    export_ac = expert_policy(ptu.from_numpy(path['observation']))
+                    assert isinstance(export_ac, torch.Tensor), f"{export_ac} is not a torch tensor!"
+                    path['action'] = ptu.to_numpy(export_ac)
 
         total_envsteps += envsteps_this_batch
         # add collected data to replay buffer

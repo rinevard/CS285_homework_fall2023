@@ -33,13 +33,12 @@ def sample_trajectory(env, policy, max_path_length, render=False):
             image_obs.append(cv2.resize(img, dsize=(250, 250), interpolation=cv2.INTER_CUBIC))
     
         # TODO use the most recent ob to decide what to do
-
-        ac_dist = policy(ptu.from_numpy(ob))
+        ac_dist = policy(ptu.from_numpy(ob).unsqueeze(0)) # add the 'batch' dimention
         # assert to make code defensive -- rinevard
         assert isinstance(ac_dist, distributions.Distribution), f"{ac_dist} is not a distribution!"
         ac = ptu.to_numpy(ac_dist.sample()) # HINT: this is a numpy array
         ac = ac[0]
-
+        
         # TODO: take that action and get reward and next ob
         next_ob, rew, done, _ = env.step(ac)
         
